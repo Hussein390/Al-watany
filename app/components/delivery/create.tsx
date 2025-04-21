@@ -1,7 +1,7 @@
 'use client';
 
 import { CREATE_DELIVERY_TASK, uploadImageToSupabase } from '@/backend/delivery';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { DataPhones } from '../DataProvider';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,9 +19,9 @@ export default function CreateTask() {
   const [clientName, setClientName] = useState('');
   const [price, setPrice] = useState<Price>(Price.thirtyFive);
   const [phone, setPhone] = useState('');
-  const [image, setImage] = useState('');
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
 
   // Replace this with the actual environmentId you're working with
@@ -44,7 +44,6 @@ export default function CreateTask() {
 
     try {
       const imageUrl = await uploadImageToSupabase(file, filePath);
-      setImage(imageUrl);
 
       const data = {
         environmentId: EnvId,
@@ -66,8 +65,10 @@ export default function CreateTask() {
       setClientName('');
       setPrice(Price.thirtyFive);
       setPhone('');
-      setImage('');
       setFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (err) {
       showAlert('Failed to create task');
     } finally {
@@ -118,6 +119,7 @@ export default function CreateTask() {
         >
         </label>
         <input
+          ref={fileInputRef}
           id='camera-upload'
           type="file"
           accept="image/*"
@@ -127,8 +129,6 @@ export default function CreateTask() {
             const selectedFile = e.target.files?.[0];
             if (selectedFile) {
               setFile(selectedFile);
-              const imageUrl = URL.createObjectURL(selectedFile);
-              setImage(imageUrl); // For preview if you want
             }
           }}
           className="w-full p-2 border rounded"
@@ -141,7 +141,10 @@ export default function CreateTask() {
             setClientName('');
             setPrice(Price.thirtyFive);
             setPhone('');
-            setImage('');
+            setFile(null);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
           }}>Cancel</Button>
         </div>
 
