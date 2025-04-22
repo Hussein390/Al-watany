@@ -7,7 +7,7 @@ export default function Home() {
   const { isAllowed } = DataPhones();
   return (
     <div className="lg:w-[1200px] container mx-auto mt-8">
-      {isAllowed === true ? <Tables /> : <CreateTask />}
+      {isAllowed === true ? <Tables /> : isAllowed === false ? <CreateTask /> : ''}
     </div>
   );
 }

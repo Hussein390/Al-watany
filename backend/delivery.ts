@@ -519,10 +519,9 @@ export async function DELETE_DELIVERY_TASK(id: string, environmentId: string) {
     if (!isOwner && (!isCollaborator || ['VIEWER', 'DELIVERY'].includes(isCollaborator.role))) {
       return "Oh sorry, You are not allowed to delete";
     }
-    const updated = await db.dilvered.delete({
+    await db.dilvered.delete({
       where: { id },
     });
-    return updated;
   } catch (err) {
     if (err instanceof Error) return err.message; // Return the actual message
     return "Failed to update task";

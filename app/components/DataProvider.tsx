@@ -45,7 +45,7 @@ const DataContext = createContext<IsOpenContextType>({
 // Create a provider component
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [tasks, setTasks] = useState<CreateDeliveryTask[]>([]);
-  const [isAllowed, setIsAllowed] = useState<boolean>(false);
+  const [isAllowed, setIsAllowed] = useState<boolean | null>(null);
   const [alertMessage, setAlertMessage] = React.useState<string | null>(null);
   const [alertSuccessMessage, setAlertSuccessMessage] = React.useState<string | null>(null);
 
@@ -68,7 +68,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       showAlert("Environment not found", false);
       return;
     }
-    setTasks([]);
+
     const res = await GET_DELIVERY_TASKS(EnvId, day);
     if (res && typeof res === "object" && "message" in res) {
       showAlert(res.message, false);

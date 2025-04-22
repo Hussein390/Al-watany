@@ -11,7 +11,7 @@ type TableRowProps = {
   index: number,
 }
 export default function TablesCURD({ handleCURD, handleUpdate, index, task, setEditingRowIndex }: TableRowProps) {
-  const { showAlert, getTasks } = DataPhones();
+  const { showAlert, setTasks } = DataPhones();
 
 
   async function handleDelete() {
@@ -22,7 +22,9 @@ export default function TablesCURD({ handleCURD, handleUpdate, index, task, setE
         showAlert("Environment not found", false);
         return;
       }
+
       const updatedTask = await DELETE_DELIVERY_TASK(task.id, EnvId);
+
       if (updatedTask instanceof Error) {
         showAlert(updatedTask.message, false);
         return;
@@ -31,7 +33,7 @@ export default function TablesCURD({ handleCURD, handleUpdate, index, task, setE
         return;
       }
       setEditingRowIndex(null);
-      getTasks()
+      setTasks(prevTasks => prevTasks.filter(taskb => taskb.id !== task.id));
       showAlert("Task deleted successfully", true);
     } catch (err) {
       showAlert("Failed to update task", false);
