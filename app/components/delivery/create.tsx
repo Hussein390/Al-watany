@@ -6,6 +6,8 @@ import { DataPhones } from '../DataProvider';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import imageCompression from 'browser-image-compression';
+import heic2any from 'heic2any';
 
 enum Price {
   twentyAight = '28000',
@@ -14,6 +16,7 @@ enum Price {
   sixtyFive = '65000',
   hunderd = '100000'
 }
+
 export default function CreateTask() {
   const { showAlert, getTasks } = DataPhones();
   const [clientName, setClientName] = useState('');
@@ -23,8 +26,45 @@ export default function CreateTask() {
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
 
-  // Replace this with the actual environmentId you're working with
+    let finalFile = selectedFile;
+
+    // HEIC to JPEG conversion
+    if (selectedFile.type === 'image/heic' || selectedFile.name.endsWith('.heic')) {
+      try {
+        const convertedBlob = await heic2any({
+          blob: selectedFile,
+          toType: 'image/jpeg',
+          quality: 0.9,
+        });
+
+        finalFile = new File([convertedBlob as BlobPart], selectedFile.name.replace(/\.heic$/i, '.jpeg'), {
+          type: 'image/jpeg',
+        });
+      } catch (error) {
+        console.error('HEIC conversion failed:', error);
+        showAlert('Failed to convert image format', false);
+        return;
+      }
+    }
+
+    // Compress the image
+    try {
+      const compressed = await imageCompression(finalFile, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+      });
+
+      setFile(compressed);
+    } catch (err) {
+      console.error('Image compression failed:', err);
+      showAlert('Failed to compress image', false);
+    }
+  };
 
   const handleSubmit = async (e: React.ChangeEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,6 +76,7 @@ export default function CreateTask() {
     }
     const filePath = `public/${Date.now().toString().slice(0, 6)}-${file.name}`;
     const EnvId = localStorage.getItem("envId");
+    console.log("📷 Selected file size:", file.size, "bytes");
 
     if (!EnvId) {
       showAlert("Environment not found", false);
@@ -114,26 +155,15 @@ export default function CreateTask() {
           className="w-full p-2 border rounded"
           required
         />
-        <label
-          htmlFor="camera-upload"
-        >
-        </label>
         <input
           ref={fileInputRef}
           id='camera-upload'
           type="file"
           accept="image/*"
           capture="environment"
-
-          onChange={(e) => {
-            const selectedFile = e.target.files?.[0];
-            if (selectedFile) {
-              setFile(selectedFile);
-            }
-          }}
+          onChange={handleFileChange}
           className="w-full p-2 border rounded"
         />
-
 
         <div className="flex items-center justify-between">
           <Button disabled={loading} type='submit' className="cursor-pointer bg-blue-400 hover:bg-blue-600 delay-100 text-white">{loading ? 'Adding...' : 'Add Task'}</Button>
@@ -147,8 +177,6 @@ export default function CreateTask() {
             }
           }}>Cancel</Button>
         </div>
-
-
       </form>
     </div>
   );
