@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import { CREATE_DELIVERY_TASK, uploadImageToSupabase } from '@/backend/delivery';
 import React, { useRef, useState } from 'react';
@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import imageCompression from 'browser-image-compression';
-import heic2any from 'heic2any';
 
 enum Price {
   twentyAight = '28000',
@@ -35,6 +34,7 @@ export default function CreateTask() {
     // HEIC to JPEG conversion
     if (selectedFile.type === 'image/heic' || selectedFile.name.endsWith('.heic')) {
       try {
+        const heic2any = (await import('heic2any')).default;
         const convertedBlob = await heic2any({
           blob: selectedFile,
           toType: 'image/jpeg',
