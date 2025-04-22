@@ -70,7 +70,7 @@ export default function CreateTask() {
         fileInputRef.current.value = '';
       }
     } catch (err) {
-      showAlert('Failed to create task');
+      showAlert('Failed to create task -- ' + err, false);
     } finally {
       setLoading(false);
     }

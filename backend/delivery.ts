@@ -349,7 +349,7 @@ export async function CREATE_DELIVERY_TASK({ environmentId, clientName, price, p
       where: { environmentId, userId: user.id }, include: {deliveryProfile: true},
     });
 
-    if (isCollaborator) {
+    if (isCollaborator?.role === 'DELIVERY') {
       
       const deliveryTask = await db.dilvered.create({
         data: {
