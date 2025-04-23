@@ -2,7 +2,6 @@
 import { auth } from '@/auth'
 import { db } from '@/db';
 import { supabase } from '@/supabase';
-import { console } from 'inspector';
 import { startOfDay, endOfDay } from 'date-fns';
 
 // ENVIRONMENT CREATION
@@ -46,21 +45,23 @@ export async function GET_ENVIRONMENT({ name }: { name: string }) {
     if (!session?.user?.email) {
         return ("You need to sing in first" )
     }
-    const user = await db.user.findUnique({where: {email: session.user.email}});
+    const [user, environment] = await Promise.all([
+      db.user.findUnique({ where: { email: session.user.email } }),
+      db.environment.findMany({
+        where: {
+          name: { contains: name.trim(), mode: 'insensitive' },
+        }, include: {
+          dilvered: true,
+          collaborators: true,
+          owner: true
+        } }),
+    ]);
       
       if (!user || !user.id) {
         return ("User Not Found");
     }
-    const envirnoment = await db.environment.findMany({
-      where: {
-        name: { contains: name.trim(), mode: 'insensitive' },
-      }, include: {
-        dilvered: true,
-        collaborators: true,
-        owner: true
-      } });
 
-    return envirnoment
+    return environment
   } catch (err: unknown) {
     if (err instanceof Error) return ("Error----" + err.message)
     else return "Unknown Error occurred"
@@ -73,24 +74,25 @@ export async function GET_ENVIRONMENT_BY_ID({ id }: { id: string }) {
     if (!session?.user?.email) {
         return ("You need to sing in first" )
     }
-    const user = await db.user.findUnique({where: {email: session.user.email}});
+    const [user, environment] = await Promise.all([
+      db.user.findUnique({ where: { email: session.user.email } }),
+      db.environment.findUnique({
+        where: { id },
+        include: {
+          dilvered: true,
+          collaborators: true,
+          owner: true
+        }
+      }),
+    ]);
       
       if (!user || !user.id) {
         return ("User Not Found");
     }
-    const envirnoment = await db.environment.findUnique({
-      where: {
-        id,
-      },
-      include: {
-        dilvered: true,
-        collaborators: true,
-        owner: true
-      }
-    });
+    
 
     console.log("environment created successfully");
-    return envirnoment
+    return environment
   } catch (err: unknown) {
     if (err instanceof Error) return ("Error----" + err.message)
     else return "Unknown Error occurred"
@@ -103,15 +105,18 @@ export async function DELETE_ENVIRONMENT_BY_ID({ id, password }: { id: string, p
     if (!session?.user?.email) {
         return ("You need to sing in first" )
     }
-    const user = await db.user.findUnique({where: {email: session.user.email}});
+    const [user, environment] = await Promise.all([
+      db.user.findUnique({ where: { email: session.user.email } }),
+      db.environment.findUnique({
+        where: { id },
+        select: { ownerId: true },
+      }),
+    ]);
       
       if (!user || !user.id) {
         return ("User Not Found");
     }
-    const environment = await db.environment.findUnique({
-      where: { id },
-      select: { ownerId: true },
-    });
+
     if (!environment) return "Environment Not Found";
     const isOwner = environment.ownerId === user.id;
     if (!isOwner) {
@@ -335,25 +340,16 @@ export async function CREATE_DELIVERY_TASK({ environmentId, clientName, price, p
   try {
     const session = await auth();
     if (!session?.user?.email) return "You need to sign in first";
-
+    
+      
     const user = await db.user.findUnique({ where: { email: session.user.email } });
     if (!user?.id) return "User Not Found";
 
-    const environment = await db.environment.findUnique({
-      where: { id: environmentId },
-      include: {
-        collaborators: {
-          where: { userId: user.id }, 
-          select: { role: true },
-          include: { deliveryProfile: true },
-        },
-      },
+    const isCollaborator = await db.collaborator.findFirst({
+      where: { userId: user.id, environmentId },
+      include: { deliveryProfile: true },
     });
 
-    if (!environment) return "Environment ID Is Not Found";
-
-    const isOwner = environment.ownerId === user.id;
-    const isCollaborator = environment.collaborators[0];
 
     if (isCollaborator?.role === 'DELIVERY') {
       
@@ -368,9 +364,7 @@ export async function CREATE_DELIVERY_TASK({ environmentId, clientName, price, p
           address: isCollaborator.deliveryProfile?.address!,
           isReceived: false,
           isOnline: false,
-          
-          createdAt,
-          updatedAt,
+
           environmentId,
         },
       });
