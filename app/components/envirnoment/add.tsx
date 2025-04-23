@@ -83,11 +83,7 @@ export function AddCollaborator({ box }: { box: (index: number) => void }) {
     }
 
     const res = await ADD_COLLABORATOR(data);
-    if (res instanceof Error) {
-      showAlert(res.message, false);
-      box(0);
-      return;
-    } else if (typeof res === "string") {
+    if (res) {
       showAlert(res, false);
       box(0);
       return;

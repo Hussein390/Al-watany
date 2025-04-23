@@ -3,7 +3,6 @@ import { auth } from '@/auth'
 import { db } from '@/db';
 import { supabase } from '@/supabase';
 import { console } from 'inspector';
-import { revalidatePath } from 'next/cache';
 import { startOfDay, endOfDay } from 'date-fns';
 
 // ENVIRONMENT CREATION
@@ -32,7 +31,6 @@ export async function CREATE_ENVIRONMENT({name, password}: {name: string, passwo
       }
     })
     console.log("environment created successfully");
-    revalidatePath("/")
     return environment
   } catch (err: unknown) {
     if (err instanceof Error) return ("Error----" + err.message)
@@ -62,7 +60,6 @@ export async function GET_ENVIRONMENT({ name }: { name: string }) {
         owner: true
       } });
 
-    revalidatePath("/")
     return envirnoment
   } catch (err: unknown) {
     if (err instanceof Error) return ("Error----" + err.message)
@@ -93,7 +90,6 @@ export async function GET_ENVIRONMENT_BY_ID({ id }: { id: string }) {
     });
 
     console.log("environment created successfully");
-    revalidatePath("/")
     return envirnoment
   } catch (err: unknown) {
     if (err instanceof Error) return ("Error----" + err.message)
@@ -116,10 +112,10 @@ export async function DELETE_ENVIRONMENT_BY_ID({ id, password }: { id: string, p
       where: { id },
       select: { ownerId: true },
     });
-    if (!environment) return new Error("Environment Not Found");
+    if (!environment) return "Environment Not Found";
     const isOwner = environment.ownerId === user.id;
     if (!isOwner) {
-      return new Error("You are not allowed to delete this environment");
+      return "You are not allowed to delete this environment";
     }
     await db.environment.delete({
       where: {
@@ -128,13 +124,12 @@ export async function DELETE_ENVIRONMENT_BY_ID({ id, password }: { id: string, p
       },
       include: {
         dilvered: true,
-        collaborators: true,
+        collaborators: true, 
         owner: true
       }
     });
 
     console.log("environment deleted successfully");
-    revalidatePath("/")
     return 'environment deleted successfully'
   } catch (err: unknown) {
     if (err instanceof Error) return ("Error----" + err.message)
@@ -160,22 +155,26 @@ export async function ADD_COLLABORATOR({ email, environmentId, role, address, de
   try {
     const session = await auth();
     if (!session?.user?.email) return "You need to sign in first";
-
-    const user = await db.user.findUnique({ where: { email: session.user.email } });
-    if (!user?.id) return "User Not Found";
-
-    const environment = await db.environment.findUnique({
-      where: { id: environmentId },
-      select: { ownerId: true },
-    });
-    if (!environment) return new Error("Environment Not Found");
-
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return "Please, enter a valid email \"example@email.com\"✅";
 
+    const [user, environment, invitedUser] = await Promise.all([
+      db.user.findUnique({ where: { email: session.user.email } }),
+      db.environment.findUnique({
+      where: { id: environmentId },
+      select: { ownerId: true },
+      }),
+      await db.user.findUnique({ where: { email } })
+    ]);
+
+    if (!user?.id) return "User Not Found";
+
+    if (!environment) return "Environment Not Found";
+
+
      // Find the user being invited
-    const invitedUser = await db.user.findUnique({ where: { email } });
-    if (!invitedUser) throw new Error("User with this email does not exist");
+    if (!invitedUser) return "User with this email does not exist";
 
     // Check if the invited user is already a collaborator in this environment
     const isCollaboratorExist = await db.collaborator.findFirst({
@@ -184,7 +183,7 @@ export async function ADD_COLLABORATOR({ email, environmentId, role, address, de
         environmentId,
       },
     });
-    if (isCollaboratorExist) throw new Error("This user is already a collaborator");
+    if (isCollaboratorExist) return "This user is already a collaborator";
 
     // Check if current user is either the owner or a collaborator with permissions
     const isCollaborator = await db.collaborator.findFirst({
@@ -193,7 +192,7 @@ export async function ADD_COLLABORATOR({ email, environmentId, role, address, de
 
     const isOwner = environment.ownerId === user.id;
     if (!isOwner && (!isCollaborator || ['VIEWER', 'DELIVERY'].includes(isCollaborator.role))) {
-      return new Error("You are not allowed to add");
+      return "You are not allowed to add";
     }
 
     if (role === AddColla_Role.DELIVERY) {
@@ -236,16 +235,19 @@ export async function GET_COLLABORATORS(environmentId: string) {
       if (!user?.id) return "User Not Found";
   
       const environment = await db.environment.findUnique({
-        where: { id: environmentId },
-        select: { ownerId: true },
-      });
-      if (!environment) return new Error("Environment Not Found");
-  
-      // Check if current user is either the owner or a collaborator with permissions
-      const isCollaborator = await db.collaborator.findFirst({
-        where: { environmentId, userId: user.id },
-      });
-      const isOwner = environment.ownerId === user.id;
+      where: { id: environmentId },
+      include: {
+        collaborators: {
+          where: { userId: user.id }, 
+          select: { role: true },
+        },
+      },
+    });
+
+    if (!environment) return "Environment ID Is Not Found";
+
+    const isOwner = environment.ownerId === user.id;
+    const isCollaborator = environment.collaborators[0];
       if (!isOwner && !isCollaborator) {
         return "Oh sorry, You are not allowed to view";
       }
@@ -255,8 +257,7 @@ export async function GET_COLLABORATORS(environmentId: string) {
         include: { user: true, deliveryProfile: true },
       });
   
-      revalidatePath("/")
-      return collaborators;
+        return collaborators;
     } catch (err: unknown) {
       if (err instanceof Error) return "Error----" + err.message;
       else return "Unknown Error occurred";
@@ -272,22 +273,22 @@ export async function CHECK_ROLE(environmentId: string) {
 
     const environment = await db.environment.findUnique({
       where: { id: environmentId },
-      select: { ownerId: true },
+      include: {
+        collaborators: {
+          where: { userId: user.id }, 
+          select: { role: true },
+        },
+      },
     });
-    if (!environment) return "Environment ID Not Found";
+
+    if (!environment) return "Environment ID Is Not Found";
 
     const isOwner = environment.ownerId === user.id;
-    if (isOwner) {
-      return true;
-    }
+    const isCollaborator = environment.collaborators[0]?.role;
 
-    const isCollaborator = await db.collaborator.findFirst({
-      where: { environmentId, userId: user.id },
-    });
-
-    if (isCollaborator?.role === 'DELIVERY') {
+    if (isCollaborator === 'DELIVERY') {
       return false;
-    } else if (['ADMIN', 'VIEWER'].includes(isCollaborator?.role!)) {
+    } else if (isOwner || ['ADMIN', 'VIEWER'].includes(isCollaborator)) {
       return true;
     }
 
@@ -320,7 +321,7 @@ export async function uploadImageToSupabase(file: File, filePath: string) {
 
   if (error) {
     console.error('Supabase upload error:', error); // 👈 log actual error
-    throw new Error('Image upload failed');
+    return'Image upload failed';
   }
 
   const publicUrl = supabase.storage
@@ -340,14 +341,19 @@ export async function CREATE_DELIVERY_TASK({ environmentId, clientName, price, p
 
     const environment = await db.environment.findUnique({
       where: { id: environmentId },
-      select: { ownerId: true },
+      include: {
+        collaborators: {
+          where: { userId: user.id }, 
+          select: { role: true },
+          include: { deliveryProfile: true },
+        },
+      },
     });
-    if (!environment) return new Error("Environment Not Found");
 
-    // Check if current user is either the owner or a collaborator with permissions
-    const isCollaborator = await db.collaborator.findFirst({
-      where: { environmentId, userId: user.id }, include: {deliveryProfile: true},
-    });
+    if (!environment) return "Environment ID Is Not Found";
+
+    const isOwner = environment.ownerId === user.id;
+    const isCollaborator = environment.collaborators[0];
 
     if (isCollaborator?.role === 'DELIVERY') {
       
@@ -370,9 +376,8 @@ export async function CREATE_DELIVERY_TASK({ environmentId, clientName, price, p
       });
 
       console.log("Delivery task created successfully");
-      revalidatePath("/")
-      return deliveryTask;
-    }else throw new Error("Error -- You are not a delivery");
+        return deliveryTask;
+    }else return "Error -- You are not a delivery";
   } catch (err: unknown) {
     if (err instanceof Error) return "Error----" + err.message;
     else return "Unknown Error occurred";
@@ -386,40 +391,42 @@ export async function GET_DELIVERY_TASKS(environmentId: string, day?: number, mo
     const session = await auth();
     if (!session?.user?.email) return "You need to sign in first";
 
-    const user = await db.user.findUnique({ where: { email: session.user.email } });
+    // These two can run at the same time ⏱️
+    const [user, environment] = await Promise.all([
+      db.user.findUnique({ where: { email: session.user.email } }),
+      db.environment.findUnique({
+        where: { id: environmentId },
+        include: {
+          collaborators: {
+            where: { user: { email: session.user.email } },
+            select: { role: true },
+          },
+        },
+      }),
+    ]);
+
     if (!user?.id) return "User Not Found";
-
-    const environment = await db.environment.findUnique({
-      where: { id: environmentId },
-      select: { ownerId: true },
-    });
-    if (!environment) return new Error("Environment Not Found");
-
-    const isCollaborator = await db.collaborator.findFirst({
-      where: { environmentId, userId: user.id },
-    });
+    if (!environment) return "Environment ID Is Not Found";
 
     const isOwner = environment.ownerId === user.id;
-    if (!isOwner && (!isCollaborator || isCollaborator.role === 'DELIVERY') ) {
+    const isCollaborator = environment.collaborators[0];
+
+    if (!isOwner && (!isCollaborator || isCollaborator.role === 'DELIVERY')) {
       return "You are not allowed to view";
     }
 
-    // 🗓️ Determine the day to filter (default: today)
+    // Time filtering
     const now = new Date();
     const targetDay = day ?? now.getDate();
     const targetmonth = month ?? now.getMonth();
-
     const targetDate = new Date(now.getFullYear(), now.getMonth(), targetDay);
     const from = startOfDay(targetDate);
     const to = endOfDay(targetDate);
 
     const deliveryTasks = await db.dilvered.findMany({
       where: {
-        createdAt: {
-          gte: from,
-          lte: to,
-        },
-        environmentId: environmentId, // optional filter if needed
+        // createdAt: { gte: from, lte: to },
+        environmentId,
       },
       include: { user: true },
       orderBy: { createdAt: 'asc' },
@@ -427,13 +434,13 @@ export async function GET_DELIVERY_TASKS(environmentId: string, day?: number, mo
 
     if (deliveryTasks.length === 0) return "No delivery task found";
 
-    revalidatePath("/");
     return deliveryTasks;
   } catch (err: unknown) {
     if (err instanceof Error) return "Error----" + err.message;
     else return "Unknown Error occurred";
   }
 }
+
 
 
 type UpdateDeliveryTask = {
@@ -495,37 +502,45 @@ export async function UPDATE_DELIVERY_TASK(id: string, updates: Partial<UpdateDe
     return "Failed to update task";
   }
 }
+
+
 export async function DELETE_DELIVERY_TASK(id: string, environmentId: string) {
   try {
     const session = await auth();
     if (!session?.user?.email) return "You need to sign in first";
 
-    const user = await db.user.findUnique({ where: { email: session.user.email } });
+    const user = await db.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
     if (!user?.id) return "User Not Found";
 
     const environment = await db.environment.findUnique({
       where: { id: environmentId },
-      select: { ownerId: true },
+      include: {
+        collaborators: {
+          where: { userId: user.id }, 
+          select: { role: true },
+        },
+      },
     });
+
     if (!environment) return "Environment ID Is Not Found";
 
-
-    // Check if current user is either the owner or a collaborator with permissions
-    const isCollaborator = await db.collaborator.findFirst({
-      where: { environmentId, userId: user.id },
-    });
-
     const isOwner = environment.ownerId === user.id;
-    if (!isOwner && (!isCollaborator || ['VIEWER', 'DELIVERY'].includes(isCollaborator.role))) {
-      return "Oh sorry, You are not allowed to delete";
+    const collaboratorRole = environment.collaborators[0]?.role;
+
+    if (isOwner || collaboratorRole === "ADMIN") {
+      const deletedTask = await db.dilvered.delete({
+        where: { id },
+      });
+      return deletedTask;
     }
-    const deleteTask = await db.dilvered.delete({
-      where: { id },
-    });
-    return deleteTask;
+
+    return "Oh sorry, You are not allowed to delete";
   } catch (err) {
-    if (err instanceof Error) return err.message; // Return the actual message
-    return "Failed to update task";
+    if (err instanceof Error) return err.message;
+    return "Failed to delete task";
   }
 }
 

@@ -111,7 +111,7 @@ export default function Tables() {
 
   useEffect(() => {
     getTasks(date)
-  }, [date, setTasks])
+  }, [])
   function OpenIMG(index: number) {
     const newIsOnline = [...openImg];
     newIsOnline[index] = !newIsOnline[index];

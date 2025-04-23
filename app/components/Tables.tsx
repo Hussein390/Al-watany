@@ -17,6 +17,7 @@ import { supabase } from '@/supabase';
 import { EllipsisVertical } from 'lucide-react';
 import TablesCURD from './TablesCURD';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { set } from 'date-fns';
 
 
 
@@ -108,7 +109,7 @@ export default function Tables() {
 
   useEffect(() => {
     getTasks()
-  }, [setTasks])
+  }, [getTasks]);
   function OpenIMG(index: number) {
     const newIsOnline = [...openImg];
     newIsOnline[index] = !newIsOnline[index];

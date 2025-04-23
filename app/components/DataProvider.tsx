@@ -1,6 +1,6 @@
 'use client'
 import { CHECK_ROLE, GET_DELIVERY_TASKS } from "@/backend/delivery";
-import React, { createContext, ReactNode, useContext, useState, Dispatch, SetStateAction, useEffect } from "react";
+import React, { createContext, ReactNode, useContext, useState, Dispatch, SetStateAction, useEffect, useCallback } from "react";
 
 // Define the type for days
 
@@ -30,7 +30,6 @@ type IsOpenContextType = {
   setTasks: Dispatch<SetStateAction<CreateDeliveryTask[]>>;
   showAlert: (message: string, isSuccess?: boolean) => void;  // ✅ Added showAlert
   getTasks: (day?: number) => Promise<void>; // ✅ Added getTasks
-  isAllowed: boolean | null;
 };
 
 // Create the context with a proper default value
@@ -39,13 +38,11 @@ const DataContext = createContext<IsOpenContextType>({
   setTasks: () => { },
   showAlert: () => { },
   getTasks: async (day?: number) => { },
-  isAllowed: null,
 });
 
 // Create a provider component
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [tasks, setTasks] = useState<CreateDeliveryTask[]>([]);
-  const [isAllowed, setIsAllowed] = useState<boolean | null>(null);
   const [alertMessage, setAlertMessage] = React.useState<string | null>(null);
   const [alertSuccessMessage, setAlertSuccessMessage] = React.useState<string | null>(null);
 
@@ -61,7 +58,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }, 5000);
   }
 
-  async function getTasks(day: number = new Date().getDate()) {
+  const getTasks = useCallback(async (day: number = new Date().getDate()) => {
     const EnvId = localStorage.getItem("envId");
 
     if (!EnvId) {
@@ -70,15 +67,18 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const res = await GET_DELIVERY_TASKS(EnvId, day);
-    if (res && typeof res === "object" && "message" in res) {
+
+    if (res instanceof Error && "message" in res) {
       showAlert(res.message, false);
       return;
     } else if (typeof res === "string") {
       showAlert(res, false);
       return;
     }
-    setTasks(res as CreateDeliveryTask[])
-  }
+
+    setTasks(res as CreateDeliveryTask[]);
+  }, []);
+
   async function isAllow() {
     const EnvId = localStorage.getItem("envId");
 
@@ -91,13 +91,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       showAlert(res, false);
       return;
     }
-    setIsAllowed(res)
+    sessionStorage.setItem("userRole", JSON.stringify(res));
   }
   useEffect(() => {
     isAllow()
   }, [])
   return (
-    <DataContext.Provider value={{ getTasks, setTasks, tasks, isAllowed, showAlert }}>
+    <DataContext.Provider value={{ getTasks, setTasks, tasks, showAlert }}>
       {children}
       {(alertMessage || alertSuccessMessage) && (
         <div className={`fixed top-20 right-3 outline-2 ${alertSuccessMessage ? 'outline-green-600' : 'outline-red-600'}  outline rounded-md z-50`}>
