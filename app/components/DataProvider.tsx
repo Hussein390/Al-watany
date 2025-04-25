@@ -58,7 +58,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }, 5000);
   }
 
-  const getTasks = useCallback(async (day: number = new Date().getDate()) => {
+  const getTasks = async (day: number = new Date().getDate()) => {
     const EnvId = localStorage.getItem("envId");
 
     if (!EnvId) {
@@ -77,7 +77,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setTasks(res as CreateDeliveryTask[]);
-  }, []);
+  };
 
   async function isAllow() {
     const EnvId = localStorage.getItem("envId");

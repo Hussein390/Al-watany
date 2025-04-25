@@ -12,52 +12,21 @@ type TableRowProps = {
 export default function TablesCURD({ handleCURD, handleUpdate, index, task, setEditingRowIndex }: TableRowProps) {
   const { showAlert, setTasks } = DataPhones();
 
-
-  // async function handleDelete() {
-  //   try {
-  //     const EnvId = localStorage.getItem("envId");
-
-  //     if (!EnvId) {
-  //       showAlert("Environment not found", false);
-  //       return;
-  //     }
-
-  //     const updatedTask = await DELETE_DELIVERY_TASK(task.id, EnvId);
-
-  //     if (updatedTask instanceof Error) {
-  //       showAlert(updatedTask.message, false);
-  //       return;
-  //     } else if (typeof updatedTask === "string") {
-  //       showAlert(updatedTask, false);
-  //       return;
-  //     }
-  //     setTasks(prevTasks => prevTasks.filter(taskb => taskb.id !== task.id));
-  //     setEditingRowIndex(null);
-  //     showAlert("Task deleted successfully", true);
-  //   } catch (err) {
-  //     showAlert("Failed to update task", false);
-  //   }
-  // }
   const handleDelete = async () => {
     const EnvId = localStorage.getItem("envId");
     if (!EnvId) {
       showAlert("Environment not found", false);
       return;
     }
-
-    // 🧠 Optimistically remove the task from the UI
-
-
     try {
+      setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id));
       const deleted = await DELETE_DELIVERY_TASK(task.id, EnvId);
 
       if (deleted instanceof Error || typeof deleted === "string") {
         // 🛑 Optional rollback: re-add the task if deletion fails
-        setTasks(prevTasks => [...prevTasks, task]); // only do this if needed
         showAlert(typeof deleted === "string" ? deleted : deleted.message, false);
         return;
       }
-      setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id));
       setEditingRowIndex(null);
       showAlert("Task deleted successfully ✅", true);
     } catch (err) {

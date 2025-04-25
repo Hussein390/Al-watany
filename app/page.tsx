@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect, useState } from 'react';
 import Tables from "./components/Tables";
 import CreateTask from "./components/delivery/create";
@@ -16,7 +15,8 @@ export default function Home() {
 
   return (
     <div className="lg:w-[1200px] container mx-auto mt-8">
-      {isAllowed === true ? <Tables /> : isAllowed === false ? <CreateTask /> : null}
+      {isAllowed === true ? <Tables /> : <CreateTask />}
+
     </div>
   );
 }

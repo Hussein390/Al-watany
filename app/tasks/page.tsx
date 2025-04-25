@@ -107,10 +107,10 @@ export default function Tables() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [setTasks]);
+  }, [getTasks]);
 
   useEffect(() => {
-    getTasks(date)
+    getTasks()
   }, [])
   function OpenIMG(index: number) {
     const newIsOnline = [...openImg];
@@ -138,9 +138,7 @@ export default function Tables() {
         return;
       }
 
-      const newTasks = [...tasks];
-      newTasks[index] = { ...newTasks[index], ...values };
-      setTasks(newTasks);
+      getTasks();
       setEditingRowIndex(null);
       setEditedValues({});
       showAlert("Task updated successfully", true);

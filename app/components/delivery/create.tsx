@@ -2,12 +2,11 @@
 
 import { CREATE_DELIVERY_TASK, uploadImageToSupabase } from '@/backend/delivery';
 import React, { useRef, useState } from 'react';
-import { CreateDeliveryTask, DataPhones } from '../DataProvider';
+import { DataPhones } from '../DataProvider';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import imageCompression from 'browser-image-compression';
-import { get } from 'http';
 
 enum Price {
   twentyAight = '28000',
@@ -77,7 +76,6 @@ export default function CreateTask() {
     }
     const filePath = `public/${Date.now().toString().slice(0, 6)}-${file.name}`;
     const EnvId = localStorage.getItem("envId");
-    console.log("📷 Selected file size:", file.size, "bytes");
 
     if (!EnvId) {
       showAlert("Environment not found", false);
@@ -102,8 +100,7 @@ export default function CreateTask() {
         showAlert(res, false);
         return;
       }
-      showAlert('Task created ✅', true);
-      getTasks()
+      console.log(res);
       setClientName('');
       setPrice(Price.thirtyFive);
       setPhone('');
@@ -117,7 +114,6 @@ export default function CreateTask() {
       setLoading(false);
     }
   };
-
   return (
     <div className=" lg:w-[500px] w-full mx-auto mt-8 p-6 bg-white shadow-md rounded-2xl">
       <h2 className="text-xl font-semibold mb-4">Create Delivery Task</h2>

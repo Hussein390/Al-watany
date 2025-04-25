@@ -17,8 +17,6 @@ import { supabase } from '@/supabase';
 import { EllipsisVertical } from 'lucide-react';
 import TablesCURD from './TablesCURD';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { set } from 'date-fns';
-
 
 
 enum Region {
@@ -75,19 +73,22 @@ export default function Tables() {
     }));
   };
 
-
-
   useEffect(() => {
     const channel = supabase
       .channel('delivery-task-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'delivered' },
+        { event: '*', schema: 'public', table: 'Dilvered' },
         (payload) => {
           const eventType = payload.eventType;
-          const newTask = payload.new as CreateDeliveryTask;
-          const oldTask = payload.old as CreateDeliveryTask;
-          console.log("🔥 Realtime event received:", eventType, payload);
+          const newTask = {
+            ...payload.new,
+            user: { name: (payload.new as CreateDeliveryTask).user?.name }
+          } as CreateDeliveryTask;
+          const oldTask = {
+            ...payload.old,
+            user: { name: (payload.old as CreateDeliveryTask).user?.name }
+          } as CreateDeliveryTask;
           setTasks((prev) => {
             if (eventType === 'INSERT') {
               return [newTask, ...prev];
@@ -101,15 +102,12 @@ export default function Tables() {
         }
       )
       .subscribe();
-
+    getTasks();
     return () => {
       supabase.removeChannel(channel);
     };
   }, [setTasks]);
 
-  useEffect(() => {
-    getTasks()
-  }, [getTasks]);
   function OpenIMG(index: number) {
     const newIsOnline = [...openImg];
     newIsOnline[index] = !newIsOnline[index];
@@ -135,10 +133,7 @@ export default function Tables() {
         setEditingRowIndex(null);
         return;
       }
-
-      const newTasks = [...tasks];
-      newTasks[index] = { ...newTasks[index], ...values };
-      setTasks(newTasks);
+      getTasks();
       setEditingRowIndex(null);
       setEditedValues({});
       showAlert("Task updated successfully", true);
@@ -236,7 +231,6 @@ export default function Tables() {
                 }
                 return acc;
               }, {} as Record<string, number>);
-
 
               return (
                 <TableRow key={index} onDoubleClick={() => isOnline(task.id, index)} className=" cursor-pointer font-semibold relative">
