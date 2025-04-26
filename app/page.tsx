@@ -9,7 +9,6 @@ export default function Home() {
   return (
     <div className="lg:w-[1200px] container mx-auto mt-8">
       {isAllowed === true ? <Tables /> : <CreateTask />}
-
     </div>
   );
 }

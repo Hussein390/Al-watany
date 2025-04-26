@@ -2,7 +2,7 @@
 
 import { CREATE_DELIVERY_TASK, uploadImageToSupabase } from '@/backend/delivery';
 import React, { useRef, useState } from 'react';
-import { DataPhones } from '../DataProvider';
+import { CreateDeliveryTask, DataPhones } from '../DataProvider';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ enum Price {
 }
 
 export default function CreateTask() {
-  const { showAlert, getTasks, setTasks } = DataPhones();
+  const { showAlert, getTasks } = DataPhones();
   const [clientName, setClientName] = useState('');
   const [price, setPrice] = useState<Price>(Price.thirtyFive);
   const [phone, setPhone] = useState('');
@@ -81,7 +81,6 @@ export default function CreateTask() {
       showAlert("Environment not found", false);
       return;
     }
-
     try {
       const imageUrl = await uploadImageToSupabase(file, filePath);
 
@@ -92,7 +91,7 @@ export default function CreateTask() {
         phone,
         image: imageUrl,
       }
-      const res = await CREATE_DELIVERY_TASK(data)
+      const res = await CREATE_DELIVERY_TASK(data as CreateDeliveryTask)
       if (res instanceof Error) {
         showAlert(res.message, false);
         return;
@@ -100,7 +99,7 @@ export default function CreateTask() {
         showAlert(res, false);
         return;
       }
-      console.log(res);
+      getTasks();
       setClientName('');
       setPrice(Price.thirtyFive);
       setPhone('');

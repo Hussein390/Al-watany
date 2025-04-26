@@ -27,7 +27,7 @@ export default function Profile() {
             <Image width={26} height={26} className="rounded-full" src={session.user!.image || ''} alt={"Hussein saleem"} />
           </div>
         </MenubarTrigger>
-        <MenubarContent className="border-none">
+        <MenubarContent className="border-none z-20 bg-white hover:bg-slate-100 delay-100">
           <MenubarItem className="cursor-pointer " onClick={async () => await signOut({ redirectTo: "/" })}>Logout</MenubarItem>
         </MenubarContent>
       </MenubarMenu>

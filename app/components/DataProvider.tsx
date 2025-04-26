@@ -94,11 +94,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       showAlert(res, false);
       return;
     }
-    sessionStorage.setItem("userRole", JSON.stringify(res));
-    const stored = sessionStorage.getItem("userRole")
-    if (typeof stored === "boolean") {
-      setIsAllowed(res || stored)
-    }
+    localStorage.setItem("userRole", JSON.stringify(res));
+    const stored = localStorage.getItem("userRole");
+
+    setIsAllowed(res || typeof stored === 'boolean' && stored)
+
   }
   useEffect(() => {
     isAllow()
