@@ -1,17 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react';
+import { DataPhones } from "./components/DataProvider";
 import Tables from "./components/Tables";
 import CreateTask from "./components/delivery/create";
 
 export default function Home() {
-  const [isAllowed, setIsAllowed] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const stored = sessionStorage.getItem("userRole");
-    if (stored) {
-      setIsAllowed(JSON.parse(stored));
-    }
-  }, []);
+  const { isAllowed } = DataPhones()
 
   return (
     <div className="lg:w-[1200px] container mx-auto mt-8">

@@ -30,6 +30,7 @@ type IsOpenContextType = {
   setTasks: Dispatch<SetStateAction<CreateDeliveryTask[]>>;
   showAlert: (message: string, isSuccess?: boolean) => void;  // ✅ Added showAlert
   getTasks: (day?: number) => Promise<void>; // ✅ Added getTasks
+  isAllowed: boolean | null
 };
 
 // Create the context with a proper default value
@@ -38,6 +39,7 @@ const DataContext = createContext<IsOpenContextType>({
   setTasks: () => { },
   showAlert: () => { },
   getTasks: async (day?: number) => { },
+  isAllowed: null
 });
 
 // Create a provider component
@@ -45,6 +47,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [tasks, setTasks] = useState<CreateDeliveryTask[]>([]);
   const [alertMessage, setAlertMessage] = React.useState<string | null>(null);
   const [alertSuccessMessage, setAlertSuccessMessage] = React.useState<string | null>(null);
+  const [isAllowed, setIsAllowed] = useState<boolean | null>(null);
 
   function showAlert(message: string, isSuccess = false) {
     if (isSuccess) {
@@ -76,7 +79,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setTasks(res as CreateDeliveryTask[]);
+    setTasks(res.length >= 1 ? res as CreateDeliveryTask[] : []);
   };
 
   async function isAllow() {
@@ -92,12 +95,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     sessionStorage.setItem("userRole", JSON.stringify(res));
+    const stored = sessionStorage.getItem("userRole")
+    if (typeof stored === "boolean") {
+      setIsAllowed(res || stored)
+    }
   }
   useEffect(() => {
     isAllow()
   }, [])
   return (
-    <DataContext.Provider value={{ getTasks, setTasks, tasks, showAlert }}>
+    <DataContext.Provider value={{ isAllowed, getTasks, setTasks, tasks, showAlert }}>
       {children}
       {(alertMessage || alertSuccessMessage) && (
         <div className={`fixed top-20 right-3 outline-2 ${alertSuccessMessage ? 'outline-green-600' : 'outline-red-600'}  outline rounded-md z-50`}>

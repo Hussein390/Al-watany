@@ -84,7 +84,7 @@ export default function Tables() {
       .channel('delivery-task-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'delivered' },
+        { event: '*', schema: 'public', table: 'Dilvered' },
         (payload) => {
           const eventType = payload.eventType;
           const newTask = payload.new as CreateDeliveryTask;
@@ -110,8 +110,9 @@ export default function Tables() {
   }, [getTasks]);
 
   useEffect(() => {
-    getTasks()
-  }, [])
+    setTasks([])
+    getTasks(date)
+  }, [date])
   function OpenIMG(index: number) {
     const newIsOnline = [...openImg];
     newIsOnline[index] = !newIsOnline[index];
