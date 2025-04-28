@@ -61,7 +61,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }, 5000);
   }
 
-  const getTasks = async (day: number = new Date().getDate()) => {
+  async function getTasks(day: number = new Date().getDate()) {
     const EnvId = localStorage.getItem("envId");
 
     if (!EnvId) {
@@ -97,7 +97,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("userRole", JSON.stringify(res));
     const stored = localStorage.getItem("userRole");
 
-    setIsAllowed(res || typeof stored === 'boolean' && stored)
+    setIsAllowed(typeof stored === 'boolean' && stored || res)
 
   }
   useEffect(() => {

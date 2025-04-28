@@ -89,6 +89,7 @@ export default function Tables() {
             ...payload.old,
             user: { name: (payload.old as CreateDeliveryTask).user?.name }
           } as CreateDeliveryTask;
+          getTasks()
           setTasks((prev) => {
             if (eventType === 'INSERT') {
               return [newTask, ...prev];
@@ -97,6 +98,7 @@ export default function Tables() {
             } else if (eventType === 'DELETE') {
               return prev.filter((task) => task.id !== oldTask.id);
             }
+
             return prev;
           });
         }
@@ -133,7 +135,6 @@ export default function Tables() {
         setEditingRowIndex(null);
         return;
       }
-      getTasks();
       setEditingRowIndex(null);
       setEditedValues({});
       showAlert("Task updated successfully", true);

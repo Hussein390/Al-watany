@@ -89,7 +89,7 @@ export default function Tables() {
           const eventType = payload.eventType;
           const newTask = payload.new as CreateDeliveryTask;
           const oldTask = payload.old as CreateDeliveryTask;
-
+          console.log('mw' + date)
           setTasks((prev) => {
             if (eventType === 'INSERT') {
               return [newTask, ...prev];
@@ -100,18 +100,19 @@ export default function Tables() {
             }
             return prev;
           });
+          getTasks(date);
         }
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [getTasks]);
+  }, [setTasks, date]);
 
   useEffect(() => {
     setTasks([])
     getTasks(date)
+    console.log(date)
   }, [date])
   function OpenIMG(index: number) {
     const newIsOnline = [...openImg];
@@ -139,7 +140,6 @@ export default function Tables() {
         return;
       }
 
-      getTasks();
       setEditingRowIndex(null);
       setEditedValues({});
       showAlert("Task updated successfully", true);

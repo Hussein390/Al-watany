@@ -99,7 +99,6 @@ export default function CreateTask() {
         showAlert(res, false);
         return;
       }
-      getTasks();
       setClientName('');
       setPrice(Price.thirtyFive);
       setPhone('');
